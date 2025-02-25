@@ -1,5 +1,5 @@
 #[allow(non_camel_case_types)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TokenType {
     // Single-character tokens.
     LEFT_PAREN, RIGHT_PAREN, LEFT_BRACE, RIGHT_BRACE,
@@ -20,18 +20,19 @@ pub enum TokenType {
 }
 
 #[allow(dead_code)]
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Value {
     Number(f64),
     String(String),
     Boolean(bool),
+    Nil
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Token {
     t: TokenType,
     lexeme: String,
-    literal: Option<Value>,
+    pub(crate) literal: Option<Value>,
     line: usize,
 }
 #[allow(dead_code)]
@@ -39,8 +40,8 @@ impl Token {
     pub fn new(t: TokenType, lexeme: String, literal: Option<Value>, line: usize) -> Token {
         Token { t, lexeme, literal, line }
     }
-    pub fn get_type(self) -> TokenType {
-        self.t
+    pub fn get_type(&self) -> TokenType {
+        self.t.clone()
     }
     pub fn get_lexeme(&self) -> &str {
         &self.lexeme
