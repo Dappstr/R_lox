@@ -37,7 +37,6 @@ impl Parser {
         expressions
     }
 
-
     fn is_at_end(&self) -> bool {
         self.pos >= self.tokens.len()
     }
@@ -209,5 +208,4 @@ impl Parser {
 
         Err("Expected expression.".to_string())
     }
-
 }
