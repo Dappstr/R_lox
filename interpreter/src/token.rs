@@ -20,7 +20,7 @@ pub enum TokenType {
 }
 
 #[allow(dead_code)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Value {
     Number(f64),
     String(String),
@@ -53,9 +53,3 @@ impl Token {
         self.line
     }
 }
-
-// impl Display for Token {
-//     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-//         write!(f, "{:?}, {}, {:?}, {}", self.t, self.lexeme, self.literal, self.line)
-//     }
-// }

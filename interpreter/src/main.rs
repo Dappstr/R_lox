@@ -2,11 +2,13 @@ mod token;
 mod scanner;
 mod parser;
 mod expression;
+mod interpreter;
 
 use std::env;
 use std::io;
 use std::io::{Read, Write};
 use std::fs::File;
+use crate::interpreter::Interpreter;
 use crate::parser::Parser;
 use crate::scanner::Scanner;
 
@@ -34,9 +36,11 @@ fn run(src: &str) -> Result<(), String> {
     let tokens = scanner.scan_tokens();
     let mut parser = Parser::new(tokens);
     let expressions = parser.parse();
-    for expr in expressions {
-        println!("{:?}\n", expr);
-    }
+    // for expr in expressions {
+    //     println!("{:?}\n", expr);
+    // }
+    let interpreter = Interpreter::new();
+    interpreter.interpret(expressions);
     Ok(())
 }
 
