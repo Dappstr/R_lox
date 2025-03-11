@@ -1,4 +1,5 @@
 use crate::expression::Expr;
+use crate::statement::Stmt;
 use crate::token::{Value, Token, TokenType};
 
 pub struct Interpreter;
@@ -8,11 +9,27 @@ impl Interpreter {
         Self
     }
 
-    pub fn interpret(&self, exprs: Vec<Expr>) {
-        for expr in exprs {
-            match self.evaluate(&expr) {
-                Ok(value) => println!("{}", self.stringify(value)),
-                Err(err) => println!("Runtime error: {}", err),
+    pub fn interpret(&self, statements: Vec<Stmt>) {
+        for stmt in statements {
+            self.execute(&stmt);
+        }
+    }
+
+    fn execute(&self, stmt: &Stmt) {
+        match stmt {
+            Stmt::Expr(expr) => {
+                let _ = self.evaluate(expr);
+            }
+            Stmt::Print(expr) => {
+                let value = self.evaluate(expr);
+                match value {
+                    Ok(value) => {
+                        println!("{}", self.stringify(value))
+                    },
+                    Err(error) => {
+                        eprintln!("Runtime error: {}", error);
+                    }
+                }
             }
         }
     }
@@ -67,11 +84,11 @@ impl Interpreter {
                         _ => Err(format!("Error {:?} not supported or mismatching types.", operator)),
                     },
                     TokenType::SLASH => match (left, right) {
-                        (Value::Number(left), Value::Number(rigt)) => {
-                            if rigt == 0.0 {
+                        (Value::Number(left), Value::Number(right)) => {
+                            if right == 0.0 {
                                 Err("Division by zero not allowed.".to_string())
                             } else {
-                                Ok(Value::Number(left / rigt))
+                                Ok(Value::Number(left / right))
                             }
                         }
                         _ => Err(format!("Error {:?} not supported or types not numeric.", operator)),

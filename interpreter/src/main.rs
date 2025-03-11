@@ -3,6 +3,7 @@ mod scanner;
 mod parser;
 mod expression;
 mod interpreter;
+mod statement;
 
 use std::env;
 use std::io;

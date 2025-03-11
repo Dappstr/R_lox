@@ -4,6 +4,7 @@ use std::cmp::PartialEq;
 use crate::expression::Expr;
 use crate::expression::Expr::{Binary, Unary};
 use crate::token::TokenType::*;
+use crate::statement::Stmt;
 
 pub struct Parser {
     tokens: Vec<Token>,
@@ -15,18 +16,37 @@ impl Parser {
         Parser { tokens, pos: 0 }
     }
 
-    pub fn parse(&mut self) -> Vec<Expr> {
-        let mut expressions = Vec::new();
+    // pub fn parse(&mut self) -> Vec<Expr> {
+    //     let mut expressions = Vec::new();
+    //
+    //     while !self.is_at_end() {
+    //         let expr_result = self.expression();
+    //
+    //         match expr_result {
+    //             Ok(expr) => expressions.push(*expr),
+    //             Err(msg) => {
+    //                 eprintln!("Parse error: {}", msg);
+    //                 self.synchronize();
+    //                 break;
+    //             }
+    //         }
+    //
+    //         if self.check(TokenType::EOF) {
+    //             break;
+    //         }
+    //     }
+    //     expressions
+    // }
+
+    pub fn parse(&mut self) -> Vec<Stmt> {
+        let mut statements = Vec::new();
 
         while !self.is_at_end() {
-            let expr_result = self.expression();
-
-            match expr_result {
-                Ok(expr) => expressions.push(*expr),
-                Err(msg) => {
-                    eprintln!("Parse error: {}", msg);
+            match self.statement() {
+                Ok(stmt) => statements.push(stmt),
+                Err(e) => {
+                    eprintln!("Parsing error: {}", e);
                     self.synchronize();
-                    break;
                 }
             }
 
@@ -34,7 +54,7 @@ impl Parser {
                 break;
             }
         }
-        expressions
+        statements
     }
 
     fn is_at_end(&self) -> bool {
@@ -100,6 +120,26 @@ impl Parser {
                     self.advance();
                 }
             }
+        }
+    }
+
+    fn print_statement(&mut self) -> Result<Stmt, String> {
+        let value = self.expression()?;
+        self.consume(TokenType::SEMICOLON, "Expect ';' after value.")?;
+        Ok(Stmt::Print(*value))
+    }
+
+    fn expression_statement(&mut self) -> Result<Stmt, String> {
+        let expr = self.expression()?;
+        self.consume(TokenType::SEMICOLON, "Expect ';' after expression.")?;
+        Ok(Stmt::Expr(*expr))
+    }
+
+    fn statement(&mut self) -> Result<Stmt, String> {
+        if self.match_token_types(&[TokenType::PRINT]) {
+            self.print_statement()
+        } else {
+            self.expression_statement()
         }
     }
 
