@@ -1,21 +1,26 @@
 use crate::expression::Expr;
 use crate::statement::Stmt;
 use crate::token::{Value, Token, TokenType};
+use crate::environment::Environment;
 
-pub struct Interpreter;
+pub struct Interpreter {
+    environment: Environment,
+}
 
 impl Interpreter {
     pub fn new() -> Self {
-        Self
+        Self {
+            environment: Environment::new(),
+        }
     }
 
-    pub fn interpret(&self, statements: Vec<Stmt>) {
+    pub fn interpret(&mut self, statements: Vec<Stmt>) {
         for stmt in statements {
             self.execute(&stmt);
         }
     }
 
-    fn execute(&self, stmt: &Stmt) {
+    fn execute(&mut self, stmt: &Stmt) {
         match stmt {
             Stmt::Expr(expr) => {
                 let _ = self.evaluate(expr);
@@ -30,6 +35,14 @@ impl Interpreter {
                         eprintln!("Runtime error: {}", error);
                     }
                 }
+            },
+            Stmt::Var(name, value) => {
+                let value = if let Some(expr) = value {
+                    self.evaluate(expr).unwrap_or(Value::Nil)
+                } else {
+                    Value::Nil
+                };
+                self.environment.define(name.get_lexeme().to_string(), value);
             }
         }
     }
@@ -51,7 +64,7 @@ impl Interpreter {
         }
     }
 
-    fn evaluate(&self, expr: &Expr) -> Result<Value, String> {
+    fn evaluate(&mut self, expr: &Expr) -> Result<Value, String> {
         match expr {
             Expr::Literal(value) => Ok(value.clone()),
             Expr::Unary { operator, right} => {
@@ -115,7 +128,12 @@ impl Interpreter {
                 }
             },
             Expr::Grouping(expr) => self.evaluate(expr),
-            Expr::Variable(name) => { Err("Variables not yet supported!".to_string()) },
+            Expr::Variable(name) => self.environment.get(name),
+            Expr::Assign { name, value } => {
+                let value = self.evaluate(value)?;
+                self.environment.assign(name, value.clone())?;
+                Ok(value)
+            }
         }
     }
 }

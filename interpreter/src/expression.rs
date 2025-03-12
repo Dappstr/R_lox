@@ -7,4 +7,5 @@ pub enum Expr {
     Binary { left: Box<Expr>, operator: Token, right: Box<Expr> },
     Grouping(Box<Expr>),
     Variable(Token),
+    Assign { name: Token, value: Box<Expr> },
 }
