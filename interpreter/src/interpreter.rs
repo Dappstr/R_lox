@@ -20,6 +20,15 @@ impl Interpreter {
         }
     }
 
+    fn execute_block(&mut self, stmts: &[Stmt], new_env: Environment) {
+        let previous = std::mem::replace(&mut self.environment, new_env);
+
+        for stmt in stmts {
+            self.execute(stmt);
+        }
+        self.environment = previous;
+    }
+
     fn execute(&mut self, stmt: &Stmt) {
         match stmt {
             Stmt::Expr(expr) => {
@@ -43,6 +52,9 @@ impl Interpreter {
                     Value::Nil
                 };
                 self.environment.define(name.get_lexeme().to_string(), value);
+            },
+            Stmt::Block(stmts) => {
+                self.execute_block(stmts, Environment::enclose(self.environment.clone()));
             }
         }
     }
