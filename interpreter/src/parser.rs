@@ -1,6 +1,5 @@
 use crate::token::{Token, TokenType, Value};
 use std::boxed::Box;
-use std::cmp::PartialEq;
 use crate::expression::Expr;
 use crate::expression::Expr::{Binary, Unary};
 use crate::token::TokenType::*;
@@ -106,6 +105,18 @@ impl Parser {
         }
     }
 
+    fn if_statement(&mut self) -> Result<Stmt, String> {
+        self.consume(LEFT_PAREN, "Expected '(' after 'if'")?;
+        let condition = *self.expression()?;
+        self.consume(RIGHT_PAREN, "Expected ')' after 'if' condition")?;
+
+        let then_branch = Box::new(self.statement()?);
+        let else_branch = if self.match_token_types(&[TokenType::ELSE]) {
+            Some(Box::new(self.statement()?))
+        } else { None };
+        return Ok(Stmt::If {condition, then_branch, else_branch});
+    }
+
     fn print_statement(&mut self) -> Result<Stmt, String> {
         let value = self.expression()?;
         self.consume(TokenType::SEMICOLON, "Expect ';' after value.")?;
@@ -137,11 +148,14 @@ impl Parser {
     }
 
     fn statement(&mut self) -> Result<Stmt, String> {
-        if self.match_token_types(&[TokenType::PRINT]) {
-            self.print_statement()
+        if self.match_token_types(&[TokenType::IF]) {
+            return self.if_statement();
+        } else if self.match_token_types(&[TokenType::PRINT]) {
+            return self.print_statement()
         } else if self.match_token_types(&[TokenType::LEFT_BRACE]) {
-            Ok(Stmt::Block(self.block()?))
-        } else {
+           return Ok(Stmt::Block(self.block()?))
+        }
+        else {
             self.expression_statement()
         }
     }

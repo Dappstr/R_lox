@@ -1,2 +1,2 @@
-var language = "lox";
-print(language);
+if(5 < 4) print "Works!";
+else print "Oops!";

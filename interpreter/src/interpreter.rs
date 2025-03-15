@@ -55,6 +55,20 @@ impl Interpreter {
             },
             Stmt::Block(stmts) => {
                 self.execute_block(stmts, Environment::enclose(self.environment.clone()));
+            },
+            Stmt::If {condition, then_branch, else_branch} => {
+                match self.evaluate(condition) {
+                    Ok(value) => {
+                        if self.is_truthy(&value) {
+                            self.execute(then_branch);
+                        } else if let Some(else_stmt) = else_branch {
+                            self.execute(else_stmt);
+                        }
+                    }
+                    Err(error) => {
+                        eprintln!("Runtime error in if statement: {}", error);
+                    }
+                }
             }
         }
     }
