@@ -1,16 +1,17 @@
+use std::rc::Rc;
+use std::cell::RefCell;
+use crate::environment::Environment;
 use crate::expression::Expr;
 use crate::statement::Stmt;
 use crate::token::{Value, Token, TokenType};
-use crate::environment::Environment;
-
 pub struct Interpreter {
-    environment: Environment,
+    environment: Rc<RefCell<Environment>>,
 }
 
 impl Interpreter {
     pub fn new() -> Self {
         Self {
-            environment: Environment::new(),
+            environment: Rc::new(RefCell::new(Environment::new())),
         }
     }
 
@@ -20,8 +21,8 @@ impl Interpreter {
         }
     }
 
-    fn execute_block(&mut self, stmts: &[Stmt], new_env: Environment) {
-        let previous = std::mem::replace(&mut self.environment, new_env);
+    fn execute_block(&mut self, stmts: &[Stmt], new_env: Rc<RefCell<Environment>>) {
+        let previous = self.environment.clone();
 
         for stmt in stmts {
             self.execute(stmt);
@@ -51,10 +52,11 @@ impl Interpreter {
                 } else {
                     Value::Nil
                 };
-                self.environment.define(name.get_lexeme().to_string(), value);
+                self.environment.borrow_mut().define(name.get_lexeme().to_string(), value);
             },
             Stmt::Block(stmts) => {
-                self.execute_block(stmts, Environment::enclose(self.environment.clone()));
+                let new_env = Rc::new(RefCell::new(Environment::enclose(self.environment.clone())));
+                self.execute_block(stmts, new_env);
             },
             Stmt::If {condition, then_branch, else_branch} => {
                 match self.evaluate(condition) {
@@ -68,6 +70,14 @@ impl Interpreter {
                     Err(error) => {
                         eprintln!("Runtime error in if statement: {}", error);
                     }
+                }
+            },
+            Stmt::While {condition, body } => {
+                while let Ok(value) = self.evaluate(condition) {
+                    if !self.is_truthy(&value) {
+                        break;
+                    }
+                    self.execute(body);
                 }
             }
         }
@@ -154,10 +164,10 @@ impl Interpreter {
                 }
             },
             Expr::Grouping(expr) => self.evaluate(expr),
-            Expr::Variable(name) => self.environment.get(name),
+            Expr::Variable(name) => self.environment.borrow().get(name),
             Expr::Assign { name, value } => {
                 let value = self.evaluate(value)?;
-                self.environment.assign(name, value.clone())?;
+                self.environment.borrow_mut().assign(name, value.clone())?;
                 Ok(value)
             }
         }

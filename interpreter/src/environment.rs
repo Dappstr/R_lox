@@ -1,23 +1,26 @@
 use std::collections::HashMap;
+use std::rc::Rc;
+use std::cell::RefCell;
 use crate::expression::Expr;
 use crate::token::*;
 
+#[derive(Debug, Clone)]
 pub struct Environment {
     values: HashMap<String, Value>,
-    parent: Option<Box<Environment>>,
+    parent: Option<Rc<RefCell<Environment>>>,
 }
 
 impl Environment {
-    pub fn new() -> Environment {
-        Self { values: HashMap::new(), parent: None, }
+    pub fn new() -> Self {
+        Self { values: HashMap::new(), parent: None }
+    }
+
+    pub fn enclose(parent: Rc<RefCell<Environment>>) -> Self {
+        Self { values: HashMap::new(), parent: Some(parent) }
     }
 
     pub fn define(&mut self, name: String, value: Value) {
         self.values.insert(name, value);
-    }
-
-    pub fn enclose(parent: Environment) -> Environment {
-        Self { values: HashMap::new(), parent: Some(Box::new(parent)) }
     }
 
     pub fn assign(&mut self, name: &Token, value: Value) -> Result<Value, String> {
@@ -25,19 +28,21 @@ impl Environment {
             self.values.insert(name.get_lexeme().to_string(), value.clone());
             return Ok(value);
         }
-        Err(format!("Variable {} not defined", name.get_lexeme()))
+        if let Some(parent) = &self.parent {
+            return parent.borrow_mut().assign(name, value);
+        }
+        Err(format!("Runtime error: Variable {} not defined", name.get_lexeme()))
     }
 
     pub fn get(&self, name: &Token) -> Result<Value, String> {
         match self.values.get(name.get_lexeme()) {
             Some(existing_value) => Ok(existing_value.clone()),
-            None => Err(format!("Variable {} not defined", name.get_lexeme()))
+            None => {
+                if let Some(parent) = &self.parent {
+                    return parent.borrow().get(name);
+                }
+                Err(format!("Runtime error: Variable {} not defined", name.get_lexeme()))
+            }
         }
-    }
-}
-
-impl Clone for Environment {
-    fn clone(&self) -> Self {
-        Self { values: self.values.clone(), parent: self.parent.clone() }
     }
 }
