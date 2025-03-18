@@ -1,7 +1,7 @@
 use crate::token::{Token, TokenType, Value};
 use std::boxed::Box;
 use crate::expression::Expr;
-use crate::expression::Expr::{Binary, Unary};
+use crate::expression::Expr::{Binary, Literal, Unary};
 use crate::token::TokenType::*;
 use crate::statement::Stmt;
 
@@ -123,6 +123,38 @@ impl Parser {
         Ok(Stmt::Print(*value))
     }
 
+    fn for_statement(&mut self) -> Result<Stmt, String> {
+        self.consume(LEFT_PAREN, "Expected '(' after 'for'")?;
+        let initializer = if self.match_token_types(&[TokenType::VAR]) {
+            Some(self.var_declaration()?)
+        } else {
+            Some(self.expression_statement()?)
+        };
+        let condition = if !self.check(TokenType::SEMICOLON) {
+            self.expression()?
+        } else {
+            Box::new(Expr::Literal(Value::Boolean(true)))
+        };
+        self.consume(TokenType::SEMICOLON, "Expect ';' after condition of for loop.")?;
+
+        let increment = if !self.check(TokenType::RIGHT_PAREN) {
+            Some(self.expression()?)
+        } else {
+            None
+        };
+        self.consume(TokenType::RIGHT_PAREN, "Expect ')' after for loop.")?;
+
+        let mut body = Box::new(self.statement()?);
+        if let Some(increment) = increment {
+            body = Box::new(Stmt::Block(vec![*body, Stmt::Expr(*increment)]));
+        }
+        let while_loop = Stmt::While {condition: *condition, body};
+        if let Some(init) = initializer {
+            return Ok(Stmt::Block(vec![init, while_loop]));
+        }
+        Ok(while_loop)
+    }
+
     fn while_statement(&mut self) -> Result<Stmt, String> {
         self.consume(LEFT_PAREN, "Expected '(' after 'while'")?;
         let condition = *self.expression()?;
@@ -165,8 +197,9 @@ impl Parser {
            return Ok(Stmt::Block(self.block()?))
         } else if self.match_token_types(&[TokenType::WHILE]) {
             return self.while_statement();
-        }
-        else {
+        } else if self.match_token_types(&[TokenType::FOR]) {
+            return self.for_statement();
+        } else {
             self.expression_statement()
         }
     }
